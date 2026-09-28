@@ -10,7 +10,7 @@ import math
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Annotated, Any, Literal, TypeVar
+from typing import Annotated, Any, TypeVar
 
 import yaml
 from opentelemetry import context as otel_context
@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from judgekit.checks import CHECKS, run_check
 from judgekit.judges import LLMJudge, available_judges, model_id_of
 from judgekit.models import EvalCase, JudgeResult
-from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, Provider
+from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, ModelConfig, Provider
 from judgekit.tracing import tracer
 
 # --- Suite config (mirrors suites/*.yaml) ------------------------------------
@@ -33,19 +33,8 @@ class CheckConfig(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 
 
-class TargetConfig(BaseModel):
-    """The model being evaluated. Only needed when cases have no recorded output."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    provider: Literal["bedrock"] = "bedrock"
-    model_id: str
-    temperature: float = 0.0
-    max_tokens: int = 1024
-
-
 class ModelPricing(BaseModel):
-    """USD per 1M tokens. Copy these from the AWS Bedrock pricing page; never guess."""
+    """USD per 1M tokens. Copy these from your provider's pricing page; never guess."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -58,14 +47,15 @@ class SuiteConfig(BaseModel):
 
     name: str
     cases_file: Path  # relative paths resolve from the directory you run judgekit in
-    target: TargetConfig | None = None
-    judge_model_id: str = DEFAULT_JUDGE_MODEL_ID
-    region: str | None = None  # None -> boto3 uses AWS_REGION / your AWS config
+    # The model that grades outputs. Any provider; see ModelConfig in providers.py.
+    judge: ModelConfig = Field(default_factory=lambda: ModelConfig(model=DEFAULT_JUDGE_MODEL_ID))
+    # The model being evaluated. Only needed when cases have no recorded output.
+    target: ModelConfig | None = None
     checks: list[CheckConfig] = Field(default_factory=list)
     judges: list[str] = Field(default_factory=list)
     thresholds: dict[str, Annotated[float, Field(ge=0.0, le=1.0)]] = Field(default_factory=dict)
     max_workers: int = Field(default=4, ge=1)
-    pricing: dict[str, ModelPricing] = Field(default_factory=dict)  # keyed by model id
+    pricing: dict[str, ModelPricing] = Field(default_factory=dict)  # keyed by model name
 
     def scorer_names(self) -> list[str]:
         return [check.name for check in self.checks] + self.judges

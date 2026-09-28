@@ -22,7 +22,7 @@ Replace these placeholders everywhere below:
    one-time use-case form; an admin does this once, not the CI role.
 2. Bedrock → **Cross-region inference** (inference profiles). Find Claude Haiku 4.5
    and copy its **inference profile ID** (e.g. `us.anthropic.claude-haiku-4-5-...`).
-   Put it in `judge_model_id` in your suite YAML. The `us.` prefix means the
+   Put it in `judge.model` in your suite YAML. The `us.` prefix means the
    request may be served from several US regions.
 3. Test locally with your own credentials first:
    `judgekit run suites/example.yaml`
@@ -194,6 +194,6 @@ suite for day-to-day use.
 |---|---|
 | `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The `sub` in the trust policy doesn't match: check the immutable-subject prefix (see Step 2), the owner/repo name, or the run came from a branch other than `main` |
 | `Could not load credentials from any providers` | Missing `permissions: id-token: write`, or the PR came from a fork |
-| `AccessDeniedException ... bedrock:InvokeModel` | The model or profile ARN in the policy doesn't match the `judge_model_id` in the suite |
+| `AccessDeniedException ... bedrock:InvokeModel` | The model or profile ARN in the policy doesn't match `judge.model` in the suite |
 | `ValidationException ... model identifier is invalid` | Wrong model ID, or model access not enabled in this region |
 | `ThrottlingException` | Lower `max_workers`; boto3 already retries with backoff |

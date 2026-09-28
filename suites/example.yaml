@@ -4,15 +4,21 @@
 name: example
 cases_file: data/cases/example.jsonl
 
+# The model that grades outputs. provider: bedrock | anthropic | openai_compatible
+# (see README "Choosing a model provider"). Bedrock uses your AWS credentials.
+judge:
+  provider: bedrock
+  model: us.anthropic.claude-haiku-4-5-20251001-v1:0   # verified in the Bedrock console
+  region: us-east-1
+
 # The model under test. Omitted here because every case already has an `output`.
 # Uncomment to generate outputs live for cases that have none:
 # target:
-#   provider: bedrock
-#   model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0   # verify in your AWS console
+#   provider: openai_compatible
+#   model: gpt-4o-mini
+#   base_url: https://api.openai.com/v1
+#   api_key_env: OPENAI_API_KEY      # the NAME of the env var, never the key itself
 
-# VERIFY this ID in the AWS console (Bedrock -> Model catalog / Inference profiles).
-judge_model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
-region: us-east-1
 max_workers: 4
 
 checks:

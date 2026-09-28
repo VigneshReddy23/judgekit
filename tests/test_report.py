@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 from judgekit import cli
 from judgekit.judges import LLMJudge
 from judgekit.models import EvalCase
-from judgekit.providers import BedrockProvider, FakeProvider
+from judgekit.providers import BedrockProvider, FakeProvider, ModelConfig
 from judgekit.report import ModelUsage, collect_usage, render_report, total_cost
 from judgekit.runner import ModelPricing, SuiteConfig, run_suite
 
@@ -126,16 +126,16 @@ def test_cli_writes_report(tmp_path: Path) -> None:
 
 
 def test_cli_report_includes_judge_usage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_bedrock(model_id: str, **kwargs: Any) -> BedrockProvider:
-        return BedrockProvider(model_id, client=FakeBedrockClient())
+    def fake_make_provider(config: ModelConfig) -> BedrockProvider:
+        return BedrockProvider(config.model, client=FakeBedrockClient())
 
-    monkeypatch.setattr(cli, "BedrockProvider", fake_bedrock)
+    monkeypatch.setattr(cli, "make_provider", fake_make_provider)
     cases = tmp_path / "c.jsonl"
     cases.write_text('{"id": "a", "input": "q"}\n')
     suite = tmp_path / "s.yaml"
     suite.write_text(
-        f"name: t\ncases_file: {cases}\njudges: [toxicity]\njudge_model_id: jm\n"
-        "target: {model_id: tm}\n"
+        f"name: t\ncases_file: {cases}\njudges: [toxicity]\njudge: {{model: jm}}\n"
+        "target: {model: tm}\n"
     )
     report = tmp_path / "r.html"
     CliRunner().invoke(cli.app, ["run", str(suite), "--report", str(report)])

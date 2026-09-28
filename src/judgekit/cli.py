@@ -7,7 +7,7 @@ Exit codes are the CI contract:
 """
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 
@@ -15,7 +15,13 @@ from judgekit.calibrate import calibrate as run_calibration
 from judgekit.calibrate import format_calibration, load_labeled
 from judgekit.judges import LLMJudge, available_judges
 from judgekit.labeling import label_cases, split_labeled
-from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, BedrockProvider
+from judgekit.providers import (
+    DEFAULT_JUDGE_MODEL_ID,
+    MeteredProvider,
+    ModelConfig,
+    ProviderName,
+    make_provider,
+)
 from judgekit.report import collect_usage, write_report
 from judgekit.runner import RunResult, load_cases, load_suite, run_suite
 from judgekit.tracing import setup_tracing
@@ -81,23 +87,21 @@ def run(
         typer.echo(f"config error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
-    bedrock_providers: list[tuple[str, BedrockProvider]] = []  # for token/cost reporting
-
+    # Build the judge and target models. A missing API key is a config error (exit 2).
+    metered: list[tuple[str, MeteredProvider]] = []  # for token/cost reporting
     judges: list[LLMJudge] = []
-    if suite.judges:
-        judge_provider = BedrockProvider(suite.judge_model_id, region=suite.region)
-        judges = [LLMJudge(name, judge_provider) for name in suite.judges]
-        bedrock_providers.append(("judge", judge_provider))
-
     target = None
-    if suite.target is not None:
-        target = BedrockProvider(
-            suite.target.model_id,
-            region=suite.region,
-            temperature=suite.target.temperature,
-            max_tokens=suite.target.max_tokens,
-        )
-        bedrock_providers.append(("target", target))
+    try:
+        if suite.judges:
+            judge_provider = make_provider(suite.judge)
+            judges = [LLMJudge(name, judge_provider) for name in suite.judges]
+            metered.append(("judge", judge_provider))
+        if suite.target is not None:
+            target = make_provider(suite.target)
+            metered.append(("target", target))
+    except ValueError as exc:
+        typer.echo(f"config error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
 
     provider = setup_tracing() if trace else None
     try:
@@ -107,7 +111,7 @@ def run(
             provider.shutdown()  # flush buffered spans before the process exits
     typer.echo(format_summary(result))
     if report is not None:
-        write_report(report, result, suite, collect_usage(bedrock_providers, suite.pricing))
+        write_report(report, result, suite, collect_usage(metered, suite.pricing))
         typer.echo(f"Report written to {report}")
     raise typer.Exit(code=0 if result.passed else 1)
 
@@ -119,10 +123,17 @@ def calibrate(
         Path,
         typer.Option("--data", help="Labeled JSONL file.", exists=True, dir_okay=False),
     ],
-    model_id: Annotated[
-        str, typer.Option("--model-id", help="Bedrock judge model ID.")
-    ] = DEFAULT_JUDGE_MODEL_ID,
-    region: Annotated[str | None, typer.Option("--region", help="AWS region.")] = None,
+    provider: Annotated[
+        str, typer.Option("--provider", help="bedrock | anthropic | openai_compatible")
+    ] = "bedrock",
+    model: Annotated[str, typer.Option("--model", help="Model name/ID.")] = DEFAULT_JUDGE_MODEL_ID,
+    base_url: Annotated[
+        str | None, typer.Option("--base-url", help="openai_compatible server URL.")
+    ] = None,
+    api_key_env: Annotated[
+        str | None, typer.Option("--api-key-env", help="Env var holding the API key.")
+    ] = None,
+    region: Annotated[str | None, typer.Option("--region", help="AWS region (bedrock).")] = None,
     workers: Annotated[int, typer.Option("--workers", min=1, help="Parallel calls.")] = 4,
 ) -> None:
     """Compare a judge with your human labels (Cohen's kappa, precision, recall)."""
@@ -133,11 +144,18 @@ def calibrate(
         raise typer.Exit(code=2)
     try:
         cases = load_labeled(data)
-    except (ValueError, OSError) as exc:
+        config = ModelConfig(
+            provider=cast(ProviderName, provider),
+            model=model,
+            base_url=base_url,
+            api_key_env=api_key_env,
+            region=region,
+        )
+        llm_judge = LLMJudge(judge, make_provider(config))
+    except (ValueError, OSError) as exc:  # pydantic ValidationError is a ValueError
         typer.echo(f"config error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
-    llm_judge = LLMJudge(judge, BedrockProvider(model_id, region=region))
     result = run_calibration(llm_judge, cases, max_workers=workers)
     typer.echo(format_calibration(result))
 

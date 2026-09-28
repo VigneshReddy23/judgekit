@@ -7,7 +7,7 @@ import yaml
 from typer.testing import CliRunner
 
 from judgekit import cli
-from judgekit.providers import FakeProvider
+from judgekit.providers import FakeProvider, ModelConfig
 
 runner = CliRunner()
 REPO_ROOT = Path(__file__).parent.parent
@@ -73,13 +73,13 @@ def test_missing_suite_file_is_a_usage_error(tmp_path: Path) -> None:
 def test_judges_use_bedrock_provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     created: list[str] = []
 
-    def fake_bedrock(model_id: str, **kwargs: Any) -> FakeProvider:
-        created.append(model_id)
+    def fake_make_provider(config: ModelConfig) -> FakeProvider:
+        created.append(config.model)
         return FakeProvider(['{"reason": "rude", "verdict": "fail"}'])
 
-    monkeypatch.setattr(cli, "BedrockProvider", fake_bedrock)
+    monkeypatch.setattr(cli, "make_provider", fake_make_provider)
     path = write_suite(
-        tmp_path, ["hi"], judges=["toxicity"], judge_model_id="judge-model", thresholds={}
+        tmp_path, ["hi"], judges=["toxicity"], judge={"model": "judge-model"}, thresholds={}
     )
     result = runner.invoke(cli.app, ["run", str(path)])
     assert created == ["judge-model"]
@@ -88,18 +88,20 @@ def test_judges_use_bedrock_provider(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
 
 def test_target_is_built_from_suite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    created: list[tuple[str, dict[str, Any]]] = []
+    created: list[ModelConfig] = []
 
-    def fake_bedrock(model_id: str, **kwargs: Any) -> FakeProvider:
-        created.append((model_id, kwargs))
+    def fake_make_provider(config: ModelConfig) -> FakeProvider:
+        created.append(config)
         return FakeProvider(["generated"])
 
-    monkeypatch.setattr(cli, "BedrockProvider", fake_bedrock)
-    path = write_suite(tmp_path, [], target={"model_id": "target-model", "max_tokens": 50})
+    monkeypatch.setattr(cli, "make_provider", fake_make_provider)
+    path = write_suite(tmp_path, [], target={"model": "target-model", "max_tokens": 50})
     (tmp_path / "cases.jsonl").write_text('{"id": "c0", "input": "q"}\n')  # no output: target runs
     result = runner.invoke(cli.app, ["run", str(path)])
     assert result.exit_code == 0, result.output
-    assert created == [("target-model", {"region": None, "temperature": 0.0, "max_tokens": 50})]
+    assert [(c.provider, c.model, c.max_tokens) for c in created] == [
+        ("bedrock", "target-model", 50)
+    ]
 
 
 def test_repo_offline_example_fails_gate(monkeypatch: pytest.MonkeyPatch) -> None:

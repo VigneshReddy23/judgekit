@@ -30,7 +30,10 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> Path:
 # --- Suite validation --------------------------------------------------------
 
 
-@pytest.mark.parametrize("name", ["example.yaml", "example_offline.yaml"])
+@pytest.mark.parametrize(
+    "name",
+    ["example.yaml", "example_offline.yaml", "example_anthropic.yaml", "example_ollama.yaml"],
+)
 def test_repo_example_suites_are_valid(name: str) -> None:
     suite = load_suite(REPO_ROOT / "suites" / name)
     assert load_cases(REPO_ROOT / suite.cases_file)
@@ -186,4 +189,5 @@ def test_suite_yaml_round_trip(tmp_path: Path) -> None:
     path.write_text(yaml.safe_dump({"name": "t", "cases_file": "c.jsonl", "judges": ["toxicity"]}))
     suite = load_suite(path)
     assert suite.judges == ["toxicity"]
-    assert suite.judge_model_id.startswith("us.anthropic.claude-haiku-4-5")
+    assert suite.judge.provider == "bedrock"
+    assert suite.judge.model.startswith("us.anthropic.claude-haiku-4-5")

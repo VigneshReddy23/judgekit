@@ -7,7 +7,9 @@
 judgekit runs an eval suite against an LLM or RAG endpoint and scores each response two ways:
 
 - **Deterministic checks**: PII leaks (email, US phone, SSN), refusal behaviour, maximum length, and citation presence. Free, instant and reproducible.
-- **LLM-as-judge scorers**: groundedness, toxicity, jailbreak compliance, and sensitive-topic handling. Each is a plain-text rubric returning a strict JSON verdict from Claude Haiku 4.5 on Amazon Bedrock.
+- **LLM-as-judge scorers**: groundedness, toxicity, jailbreak compliance, and sensitive-topic handling. Each is a plain-text rubric returning a strict JSON verdict.
+
+**Model-agnostic:** the judge (and the model under test) can be Claude on **Amazon Bedrock**, Claude via **Anthropic's API**, or **any OpenAI-compatible endpoint** (OpenAI, Ollama, vLLM, Groq, Together, OpenRouter, LM Studio, ...). You choose it with a few lines of YAML: provider, model, and the *name* of the environment variable holding your API key.
 
 Every judge is **calibrated against human labels** (Cohen's kappa, and precision/recall on the fail class). The CLI **exits non-zero** when any scorer's pass rate falls below its threshold, which makes it a CI gate. Runs emit **OpenTelemetry traces** and a self-contained **HTML report**.
 
@@ -22,7 +24,7 @@ Measured against my own labels on a held-out set. Numbers are filled in from rea
 | jailbreak_compliance | TBD | TBD | TBD | TBD | TBD |
 | sensitive_handling | TBD | TBD | TBD | TBD | TBD |
 
-Judge model: Claude Haiku 4.5 on Bedrock, temperature 0. Reproduce any row with `judgekit calibrate --judge <name> --data data/labeled/<name>.test.jsonl` (held-out split; see [docs/labeling-plan.md](docs/labeling-plan.md)).
+Judge model for these numbers: Claude Haiku 4.5 on Bedrock, temperature 0. Calibration is per judge *model*: switching models means re-running calibration. Reproduce any row with `judgekit calibrate --judge <name> --data data/labeled/<name>.test.jsonl` (held-out split; see [docs/labeling-plan.md](docs/labeling-plan.md)).
 
 ## Architecture
 
@@ -30,10 +32,10 @@ Judge model: Claude Haiku 4.5 on Bedrock, temperature 0. Reproduce any row with 
 flowchart LR
     suite[suite.yaml] --> runner
     cases[cases.jsonl] --> runner
-    runner -->|case has no recorded output| target[Target model<br/>Bedrock]
+    runner -->|case has no recorded output| target[Target model<br/>any provider]
     runner --> checks[Deterministic checks<br/>PII · refusal · length · citation]
     runner --> judges[LLM judges<br/>rubric prompts]
-    judges --> judgemodel[Judge model<br/>Claude Haiku 4.5 · Bedrock]
+    judges --> judgemodel[Judge model<br/>Bedrock · Anthropic API · OpenAI-compatible]
     checks --> results[JudgeResults]
     judges --> results
     results --> gate{Pass rate ≥ threshold?}
@@ -56,17 +58,22 @@ judgekit run suites/example_offline.yaml --report report.html
 
 The example is **designed to fail**: one demo case leaks an email address. You'll see exit code `1` and the failure in `report.html`.
 
-To run the LLM judges as well, configure AWS credentials with Bedrock access (if you sign in with `aws login`, also `pip install "botocore[crt]"`), enable Claude Haiku 4.5 in the Bedrock console, verify `judge_model_id` in `suites/example.yaml`, then:
+To run the LLM judges as well, pick whichever model access you have:
 
 ```bash
-judgekit run suites/example.yaml --report report.html
+export ANTHROPIC_API_KEY=...      && judgekit run suites/example_anthropic.yaml   # Anthropic API
+ollama pull llama3.1:8b           && judgekit run suites/example_ollama.yaml      # free, local
+judgekit run suites/example.yaml                                                   # AWS Bedrock*
 ```
+
+\*Bedrock needs AWS credentials and Claude Haiku 4.5 enabled in your account (if you sign in with `aws login`, also `pip install "botocore[crt]"`).
 
 ## Usage
 
 ```bash
 judgekit run <suite.yaml> [--report report.html] [--trace]
-judgekit calibrate --judge <name> --data data/labeled/<name>.jsonl [--model-id ...] [--workers 4]
+judgekit calibrate --judge <name> --data data/labeled/<name>.jsonl \
+    [--provider bedrock|anthropic|openai_compatible] [--model ...] [--base-url ...] [--api-key-env ...]
 ```
 
 | Exit code | Meaning |
@@ -80,10 +87,12 @@ judgekit calibrate --judge <name> --data data/labeled/<name>.jsonl [--model-id .
 ```yaml
 name: example
 cases_file: data/cases/example.jsonl      # JSONL: {"id", "input", "context"?, "output"?}
-judge_model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0   # verify in your AWS console
-region: us-east-1
+judge:                                    # the model that grades (see "Choosing a model provider")
+  provider: bedrock
+  model: us.anthropic.claude-haiku-4-5-20251001-v1:0
+  region: us-east-1
+# target: {...}                           # same shape; only needed for cases without an "output"
 max_workers: 4
-# target: {provider: bedrock, model_id: ...}   # only needed for cases without an "output"
 checks:
   - name: pii_leak
   - name: max_length
@@ -97,6 +106,34 @@ thresholds:            # minimum pass rate; scorers without one are reported onl
 ```
 
 Everything is validated **before** any model call: unknown checks or judges, wrong check parameters, thresholds outside 0–1, and misspelled keys all fail in milliseconds with exit code `2`.
+
+### Choosing a model provider
+
+`judge:` and `target:` take the same block. Only `provider` and `model` are always required.
+
+```yaml
+# Claude on AWS Bedrock (AWS credentials; no API key)
+judge: {provider: bedrock, model: us.anthropic.claude-haiku-4-5-20251001-v1:0, region: us-east-1}
+
+# Claude via Anthropic's API (reads ANTHROPIC_API_KEY by default)
+judge: {provider: anthropic, model: claude-haiku-4-5}
+
+# Any OpenAI-compatible /chat/completions server
+judge: {provider: openai_compatible, model: gpt-4o-mini, base_url: https://api.openai.com/v1, api_key_env: OPENAI_API_KEY}
+judge: {provider: openai_compatible, model: llama3.1:8b, base_url: http://localhost:11434/v1}   # Ollama, no key
+```
+
+| Field | Meaning |
+|---|---|
+| `provider` | `bedrock`, `anthropic` or `openai_compatible` |
+| `model` | model name or ID as the provider expects it |
+| `base_url` | `openai_compatible` only: the server's base URL (`/chat/completions` is appended) |
+| `api_key_env` | the **name** of the environment variable holding the key; keys never go in YAML |
+| `region` | `bedrock` only |
+| `temperature` | default `0`; set `null` for models that reject sampling parameters (e.g. newer Claude models, OpenAI reasoning models) |
+| `max_tokens` | default `1024` |
+
+A missing key or an invalid combination (e.g. `base_url` with `bedrock`) fails before any call, with exit code 2.
 
 ### Building labeled data
 
@@ -121,7 +158,7 @@ Span tree: `eval.run` → `eval.case` (one per case, run in parallel) → `targe
 ### CI
 
 - **`ci.yml`**: ruff, mypy (strict) and pytest with coverage on every push and PR. No secrets needed; tests use a fake provider.
-- **`eval-gate.yml`**: runs a real suite on Bedrock for PRs that touch `src/judgekit/prompts/**` or `suites/**`, or on manual dispatch. It authenticates with **OIDC** (no stored AWS keys) and uploads `report.html` as an artifact even when the gate fails. Setup: [docs/aws-oidc-setup.md](docs/aws-oidc-setup.md).
+- **`eval-gate.yml`**: runs a real suite for PRs that touch `src/judgekit/prompts/**` or `suites/**`, or on manual dispatch, and uploads `report.html` as an artifact even when the gate fails. For Bedrock it authenticates with **OIDC** (no stored AWS keys; setup in [docs/aws-oidc-setup.md](docs/aws-oidc-setup.md)); for API-key providers, add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` as a repository secret.
 
 ## Writing a custom judge
 
@@ -141,7 +178,9 @@ A custom **deterministic check** is a function `(output: str, **params) -> tuple
 
 ## Design decisions
 
-- **Temperature 0 for judges.** A grader whose verdict changes when you rerun it can't gate a merge; temperature 0 makes judges as repeatable as the API allows.
+- **Temperature 0 for judges** (where the model allows it). A grader whose verdict changes when you rerun it can't gate a merge. Some newer models reject sampling parameters entirely; for those, `temperature: null` omits it and calibration shows how stable the judge is.
+- **Model-agnostic through one small `Provider` interface.** Bedrock, Anthropic's API and the OpenAI-compatible format cover almost every hosted and local model; adding a provider is one class with a `complete()` method.
+- **API keys by environment-variable name, never in config.** Suite files are committed; a key pasted into YAML would be public within minutes.
 - **Binary JSON verdicts instead of 1–10 scores.** "Is every claim supported?" gets consistent answers; the difference between a 6 and a 7 doesn't. Binary labels also map directly onto precision and recall.
 - **Reason before verdict.** The model writes its evidence first and commits second, a cheap form of chain-of-thought.
 - **Calibrate against humans.** A judge is a model too, so it needs its own evaluation before anyone trusts its pass rates. κ corrects for chance agreement, which raw accuracy hides on imbalanced data.
@@ -185,7 +224,7 @@ Exact sources, seeds and dates for every file are recorded in [data/labeled/SOUR
 ```
 src/judgekit/
   models.py      EvalCase, LabeledCase, JudgeResult
-  providers.py   Provider protocol, BedrockProvider (converse), FakeProvider
+  providers.py   Provider protocol; Bedrock, Anthropic, OpenAI-compatible, Fake; ModelConfig
   checks.py      deterministic checks + registry
   judges.py      LLMJudge, rubric loading, strict verdict parsing
   runner.py      suite config, parallel runner, thresholds

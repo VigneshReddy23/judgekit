@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, BedrockProvider
+from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, MeteredProvider, ModelConfig, make_provider
 
 ROOT = Path(__file__).resolve().parent.parent
 LABELING = ROOT / "data" / "labeling"
@@ -162,7 +162,7 @@ def prepare_toxicity(n: int, seed: int) -> None:
 # --- jailbreak_compliance: JBB-Behaviors (MIT) + generated responses ------------
 
 
-def prepare_jailbreak(n: int, seed: int, target_model_id: str, region: str | None) -> None:
+def prepare_jailbreak(n: int, seed: int, target: MeteredProvider) -> None:
     """Harmful goals (half wrapped in a role-play jailbreak) plus benign goals.
 
     The target model writes the responses; you judge whether each complied.
@@ -172,8 +172,6 @@ def prepare_jailbreak(n: int, seed: int, target_model_id: str, region: str | Non
     harmful = hf_rows(dataset, "behaviors", "harmful", 0, 100)
     benign = hf_rows(dataset, "behaviors", "benign", 0, 100)
     n_harmful = round(n * 0.6)
-    target = BedrockProvider(target_model_id, region=region, temperature=0.7, max_tokens=600)
-
     items = []
     picks = [("harmful", r) for r in rng.sample(harmful, n_harmful)]
     picks += [("benign", r) for r in rng.sample(benign, n - n_harmful)]
@@ -185,7 +183,7 @@ def prepare_jailbreak(n: int, seed: int, target_model_id: str, region: str | Non
         output = target.complete(prompt)
         case = {"input": prompt, "output": output}
         prov = {"source": f"JBB-Behaviors {kind}", "index": row["Index"], "role_play": wrapped}
-        items.append((case, prov | {"target_model": target_model_id}))
+        items.append((case, prov | {"target_model": target.model_id}))
     cases, provenance = shuffled_with_ids("jbk", items, rng)
     write_outputs("jailbreak_compliance", cases, provenance)
     print(f"Tokens used: {target.input_tokens} in / {target.output_tokens} out")
@@ -196,15 +194,14 @@ def prepare_jailbreak(n: int, seed: int, target_model_id: str, region: str | Non
 # --- sensitive_handling: your own prompts + generated responses -----------------
 
 
-def prepare_sensitive(prompts_file: Path, target_model_id: str, region: str | None) -> None:
+def prepare_sensitive(prompts_file: Path, target: MeteredProvider) -> None:
     prompts = [p.strip() for p in prompts_file.read_text().splitlines() if p.strip()]
-    target = BedrockProvider(target_model_id, region=region, temperature=0.7, max_tokens=600)
     cases = []
     for i, prompt in enumerate(prompts, start=1):
         print(f"  generating {i}/{len(prompts)}")
         cases.append({"id": f"sen-{i:03d}", "input": prompt, "output": target.complete(prompt)})
     provenance = [
-        {"id": c["id"], "source": "own prompt", "target_model": target_model_id} for c in cases
+        {"id": c["id"], "source": "own prompt", "target_model": target.model_id} for c in cases
     ]
     write_outputs("sensitive_handling", cases, provenance)
     record_source("sensitive_handling", "own prompts + generated", "-", "own", 0, len(cases))
@@ -220,20 +217,38 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=50, help="cases to prepare")
     parser.add_argument("--seed", type=int, default=42, help="random seed (recorded)")
     parser.add_argument("--prompts", type=Path, help="sensitive_handling: one prompt per line")
-    parser.add_argument("--target-model-id", default=DEFAULT_JUDGE_MODEL_ID)
-    parser.add_argument("--region", default=None)
+    # The model that writes responses (jailbreak/sensitive only). Any provider works.
+    parser.add_argument(
+        "--provider", default="bedrock", help="bedrock | anthropic | openai_compatible"
+    )
+    parser.add_argument("--model", default=DEFAULT_JUDGE_MODEL_ID)
+    parser.add_argument("--base-url", default=None, help="openai_compatible server URL")
+    parser.add_argument("--api-key-env", default=None, help="env var holding the API key")
+    parser.add_argument("--region", default=None, help="AWS region (bedrock)")
     args = parser.parse_args()
+
+    def target() -> MeteredProvider:
+        config = ModelConfig(
+            provider=args.provider,
+            model=args.model,
+            base_url=args.base_url,
+            api_key_env=args.api_key_env,
+            region=args.region,
+            temperature=0.7,  # varied, natural responses to label
+            max_tokens=600,
+        )
+        return make_provider(config)
 
     if args.judge == "groundedness":
         prepare_groundedness(args.n, args.seed)
     elif args.judge == "toxicity":
         prepare_toxicity(args.n, args.seed)
     elif args.judge == "jailbreak_compliance":
-        prepare_jailbreak(args.n, args.seed, args.target_model_id, args.region)
+        prepare_jailbreak(args.n, args.seed, target())
     else:
         if args.prompts is None:
             parser.error("sensitive_handling needs --prompts <file with one prompt per line>")
-        prepare_sensitive(args.prompts, args.target_model_id, args.region)
+        prepare_sensitive(args.prompts, target())
 
 
 if __name__ == "__main__":

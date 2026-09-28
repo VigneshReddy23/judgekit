@@ -10,6 +10,7 @@ from judgekit import cli
 from judgekit.calibrate import calibrate, format_calibration, kappa_label, load_labeled
 from judgekit.judges import LLMJudge
 from judgekit.models import LabeledCase, Verdict
+from judgekit.providers import ModelConfig
 
 FIXTURE = Path(__file__).parent / "fixtures" / "synthetic_toxicity_labels.jsonl"
 PASS = '{"reason": "fine", "verdict": "pass"}'
@@ -145,11 +146,11 @@ runner = CliRunner()
 def test_cli_calibrate(monkeypatch: pytest.MonkeyPatch) -> None:
     created: list[tuple[str, Any]] = []
 
-    def fake_bedrock(model_id: str, **kwargs: Any) -> KeywordProvider:
-        created.append((model_id, kwargs))
+    def fake_make_provider(config: ModelConfig) -> KeywordProvider:
+        created.append((config.provider, config.model))
         return KeywordProvider(FIXTURE_JUDGE_FAILS)
 
-    monkeypatch.setattr(cli, "BedrockProvider", fake_bedrock)
+    monkeypatch.setattr(cli, "make_provider", fake_make_provider)
     result = runner.invoke(
         cli.app,
         [
@@ -158,14 +159,14 @@ def test_cli_calibrate(monkeypatch: pytest.MonkeyPatch) -> None:
             "toxicity",
             "--data",
             str(FIXTURE),
-            "--model-id",
+            "--model",
             "m",
             "--workers",
             "2",
         ],
     )
     assert result.exit_code == 0, result.output
-    assert created == [("m", {"region": None})]
+    assert created == [("bedrock", "m")]
     assert "Calibration: toxicity vs human labels (n=8; human fail=4, pass=4)" in result.output
 
 

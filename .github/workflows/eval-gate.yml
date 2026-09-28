@@ -1,7 +1,9 @@
-# Runs a real eval suite against Bedrock and fails if any scorer is below its
-# threshold. Triggered manually, or by PRs that change rubrics or suites.
-# AWS access uses OIDC: GitHub issues a short-lived token that AWS exchanges for
-# temporary credentials. No AWS keys are stored in GitHub. Setup: docs/aws-oidc-setup.md
+# Runs a real eval suite and fails if any scorer is below its threshold.
+# Triggered manually, or by PRs that change rubrics or suites.
+# Works with any provider in the suite's judge/target config:
+#   bedrock            -> AWS via OIDC (secret AWS_ROLE_ARN; no AWS keys stored). docs/aws-oidc-setup.md
+#   anthropic          -> secret ANTHROPIC_API_KEY
+#   openai_compatible  -> secret OPENAI_API_KEY (or whatever the suite's api_key_env names)
 name: Eval gate
 
 on:
@@ -31,6 +33,10 @@ jobs:
     timeout-minutes: 30
     env:
       SUITE: ${{ inputs.suite || 'suites/example.yaml' }}
+      # Secrets that aren't set are empty strings, so unused providers cost nothing.
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - uses: actions/checkout@v7
 
@@ -44,9 +50,10 @@ jobs:
         run: pip install .
 
       - name: Configure AWS credentials (OIDC)
+        if: env.AWS_ROLE_ARN != ''  # only for suites that use provider: bedrock
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
           role-session-name: judgekit-eval-${{ github.run_id }}
 

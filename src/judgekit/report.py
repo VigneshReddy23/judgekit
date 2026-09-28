@@ -11,7 +11,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 from pydantic import BaseModel
 
 from judgekit import __version__
-from judgekit.providers import BedrockProvider
+from judgekit.providers import MeteredProvider
 from judgekit.runner import ModelPricing, RunResult, SuiteConfig
 
 
@@ -24,7 +24,7 @@ class ModelUsage(BaseModel):
 
 
 def collect_usage(
-    providers: list[tuple[str, BedrockProvider]], pricing: dict[str, ModelPricing]
+    providers: list[tuple[str, MeteredProvider]], pricing: dict[str, ModelPricing]
 ) -> list[ModelUsage]:
     """Turn each provider's token counters into a usage row with an estimated cost."""
     usages = []

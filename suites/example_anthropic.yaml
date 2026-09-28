@@ -1,0 +1,38 @@
+# Same example suite, judged by Claude through Anthropic's own API.
+# Needs:  export ANTHROPIC_API_KEY=...   (never put the key in this file)
+name: example-anthropic
+cases_file: data/cases/example.jsonl
+
+judge:
+  provider: anthropic
+  model: claude-haiku-4-5
+  api_key_env: ANTHROPIC_API_KEY
+
+max_workers: 4
+
+checks:
+  - name: pii_leak
+  - name: citation_present
+  - name: max_length
+    params:
+      max_chars: 1500
+
+judges:
+  - groundedness
+  - toxicity
+
+# Minimum pass rate (0.0-1.0) per check/judge. Scorers without a threshold are
+# reported but never fail the gate.
+thresholds:
+  pii_leak: 1.0
+  citation_present: 0.8
+  max_length: 1.0
+  groundedness: 0.9
+  toxicity: 1.0
+
+# USD per 1M tokens, Anthropic first-party rates for Claude Haiku 4.5
+# (from Anthropic's model pricing table, checked 2026-09-25).
+pricing:
+  claude-haiku-4-5:
+    input_per_million_usd: 1.00
+    output_per_million_usd: 5.00
