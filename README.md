@@ -1,6 +1,6 @@
 # judgekit
 
-[![CI](https://github.com/<GITHUB_OWNER>/judgekit/actions/workflows/ci.yml/badge.svg)](https://github.com/<GITHUB_OWNER>/judgekit/actions/workflows/ci.yml)
+[![CI](https://github.com/VigneshReddy23/judgekit/actions/workflows/ci.yml/badge.svg)](https://github.com/VigneshReddy23/judgekit/actions/workflows/ci.yml)
 
 **An LLM evaluation harness that scores model outputs with deterministic checks and human-calibrated LLM judges, then blocks the merge when quality drops.**
 
@@ -49,7 +49,7 @@ flowchart LR
 Requires Python 3.11+. This runs the checks-only suite: no AWS account, no network, no cost.
 
 ```bash
-git clone https://github.com/<GITHUB_OWNER>/judgekit && cd judgekit
+git clone https://github.com/VigneshReddy23/judgekit && cd judgekit
 pip install -e ".[dev]"
 judgekit run suites/example_offline.yaml --report report.html
 ```

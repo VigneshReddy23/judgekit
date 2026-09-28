@@ -10,7 +10,6 @@ Replace these placeholders everywhere below:
 | Placeholder | Example | Where to find it |
 |---|---|---|
 | `<ACCOUNT_ID>` | `123456789012` | AWS console, top-right account menu |
-| `<GITHUB_OWNER>` | your GitHub username | the URL of your repo |
 | `<REGION>` | `us-east-1` | the region you use for Bedrock |
 | `<MODEL_ID>` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Bedrock console, see step 0 |
 
@@ -68,8 +67,8 @@ Save as `trust-policy.json`:
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
           "token.actions.githubusercontent.com:sub": [
-            "repo:<GITHUB_OWNER>/judgekit:pull_request",
-            "repo:<GITHUB_OWNER>/judgekit:ref:refs/heads/main"
+            "repo:VigneshReddy23/judgekit:pull_request",
+            "repo:VigneshReddy23/judgekit:ref:refs/heads/main"
           ]
         }
       }
