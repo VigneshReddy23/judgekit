@@ -1,0 +1,36 @@
+# Example suite: 5 synthetic customer-support cases with pre-recorded outputs.
+# Two cases are deliberately bad, so this suite is EXPECTED to fail the gate.
+# Requires AWS credentials with Bedrock access (the judges call Claude Haiku 4.5).
+name: example
+cases_file: data/cases/example.jsonl
+
+# The model under test. Omitted here because every case already has an `output`.
+# Uncomment to generate outputs live for cases that have none:
+# target:
+#   provider: bedrock
+#   model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0   # verify in your AWS console
+
+# VERIFY this ID in the AWS console (Bedrock -> Model catalog / Inference profiles).
+judge_model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
+region: us-east-1
+max_workers: 4
+
+checks:
+  - name: pii_leak
+  - name: citation_present
+  - name: max_length
+    params:
+      max_chars: 1500
+
+judges:
+  - groundedness
+  - toxicity
+
+# Minimum pass rate (0.0-1.0) per check/judge. Scorers without a threshold are
+# reported but never fail the gate.
+thresholds:
+  pii_leak: 1.0
+  citation_present: 0.8
+  max_length: 1.0
+  groundedness: 0.9
+  toxicity: 1.0

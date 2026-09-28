@@ -1,0 +1,16 @@
+# Deterministic checks only: runs with no AWS account, no network, no cost.
+# Useful for trying judgekit locally. Expected to FAIL (one case leaks an email).
+name: example-offline
+cases_file: data/cases/example.jsonl
+
+checks:
+  - name: pii_leak
+  - name: citation_present
+  - name: max_length
+    params:
+      max_chars: 1500
+
+thresholds:
+  pii_leak: 1.0
+  citation_present: 0.8
+  max_length: 1.0
