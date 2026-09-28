@@ -56,7 +56,7 @@ judgekit run suites/example_offline.yaml --report report.html
 
 The example is **designed to fail**: one demo case leaks an email address. You'll see exit code `1` and the failure in `report.html`.
 
-To run the LLM judges as well, configure AWS credentials with Bedrock access, enable Claude Haiku 4.5 in the Bedrock console, verify `judge_model_id` in `suites/example.yaml`, then:
+To run the LLM judges as well, configure AWS credentials with Bedrock access (if you sign in with `aws login`, also `pip install "botocore[crt]"`), enable Claude Haiku 4.5 in the Bedrock console, verify `judge_model_id` in `suites/example.yaml`, then:
 
 ```bash
 judgekit run suites/example.yaml --report report.html
@@ -97,6 +97,16 @@ thresholds:            # minimum pass rate; scorers without one are reported onl
 ```
 
 Everything is validated **before** any model call: unknown checks or judges, wrong check parameters, thresholds outside 0–1, and misspelled keys all fail in milliseconds with exit code `2`.
+
+### Building labeled data
+
+```bash
+python scripts/prepare_labeling.py groundedness      # samples HaluEval into data/labeling/*.todo.jsonl
+judgekit label --todo data/labeling/groundedness.todo.jsonl --out data/labeled/groundedness.jsonl
+judgekit split --data data/labeled/groundedness.jsonl --test-size 20 --seed 42
+```
+
+`prepare_labeling.py` only samples cases (fixed seed, opaque ids) and never assigns labels. `judgekit label` shows one case at a time and records *your* pass/fail plus a note; it's resumable (`q` to quit, `u` to undo) and never shows a judge's verdict. `split` writes a stratified dev/test pair.
 
 ### Tracing
 
@@ -164,12 +174,11 @@ A custom **deterministic check** is a function `(output: str, **params) -> tuple
 | Judge | Source | Licence | Notes |
 |---|---|---|---|
 | groundedness | [HaluEval](https://github.com/RUCAIBox/HaluEval) | MIT (repo) | QA split gives knowledge, question, correct and hallucinated answers. Some items derive from other datasets (e.g. HotpotQA), which carry their own licences |
-| toxicity | [ToxiGen](https://github.com/microsoft/TOXIGEN) | MIT code; data stated as **"for research purposes only"** | Non-commercial research use; cite the paper |
-| toxicity | [Jigsaw Toxic Comment Classification](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/data) | CC0, but comment text is Wikipedia **CC BY-SA 3.0** | Redistributed text needs attribution and share-alike |
+| toxicity | [Civil Comments](https://huggingface.co/datasets/google/civil_comments) | **CC0-1.0** | Chosen over Jigsaw (text is CC BY-SA 3.0, share-alike) and ToxiGen (data "for research purposes only") because public-domain text is safe to publish |
 | jailbreak_compliance | [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (JBB-Behaviors) | MIT | Harmful and benign behaviours; responses must be generated or labeled separately |
 | sensitive_handling | Written by me | Same as this repo | 50 hand-written sensitive-topic cases |
 
-The MIT licence of this repository covers the **code**. Labeled data files keep the licence of their source, and any file containing CC BY-SA text is itself CC BY-SA. The test fixture in `tests/fixtures/` is synthetic and is not used for any reported number.
+Exact sources, seeds and dates for every file are recorded in [data/labeled/SOURCES.md](data/labeled/SOURCES.md). The MIT licence of this repository covers the **code**. Labeled data files keep the licence of their source, and any file containing CC BY-SA text is itself CC BY-SA. The test fixture in `tests/fixtures/` is synthetic and is not used for any reported number.
 
 ## Project layout
 
@@ -183,12 +192,15 @@ src/judgekit/
   calibrate.py   kappa / precision / recall vs human labels
   tracing.py     OpenTelemetry setup
   report.py      HTML report + cost estimate
-  cli.py         `judgekit run` and `judgekit calibrate`
+  labeling.py    `judgekit label` / `split`: build the human-labeled set
+  cli.py         `judgekit run`, `calibrate`, `label`, `split`
   prompts/       one rubric per judge
   templates/     report.html.j2
+scripts/         prepare_labeling.py: sample sources into unlabeled todo files
 suites/          example suites
 data/cases/      demo cases (synthetic)
-data/labeled/    human labels (mine)
+data/labeling/   unlabeled todo files + provenance
+data/labeled/    human labels (mine) + SOURCES.md
 docs/            AWS OIDC + least-privilege IAM setup
 ```
 

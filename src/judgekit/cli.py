@@ -14,6 +14,7 @@ import typer
 from judgekit.calibrate import calibrate as run_calibration
 from judgekit.calibrate import format_calibration, load_labeled
 from judgekit.judges import LLMJudge, available_judges
+from judgekit.labeling import label_cases, split_labeled
 from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, BedrockProvider
 from judgekit.report import collect_usage, write_report
 from judgekit.runner import RunResult, load_cases, load_suite, run_suite
@@ -139,3 +140,35 @@ def calibrate(
     llm_judge = LLMJudge(judge, BedrockProvider(model_id, region=region))
     result = run_calibration(llm_judge, cases, max_workers=workers)
     typer.echo(format_calibration(result))
+
+
+@app.command()
+def label(
+    todo: Annotated[
+        Path, typer.Option("--todo", help="Unlabeled JSONL.", exists=True, dir_okay=False)
+    ],
+    out: Annotated[Path, typer.Option("--out", help="Labeled JSONL to append to.")],
+) -> None:
+    """Label cases yourself, one at a time (resumable). Never shows judge verdicts."""
+    try:
+        label_cases(todo, out)
+    except ValueError as exc:
+        typer.echo(f"config error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command()
+def split(
+    data: Annotated[
+        Path, typer.Option("--data", help="Labeled JSONL.", exists=True, dir_okay=False)
+    ],
+    test_size: Annotated[int, typer.Option("--test-size", help="Cases held out for test.")] = 20,
+    seed: Annotated[int, typer.Option("--seed", help="Random seed (record it).")] = 42,
+) -> None:
+    """Split labeled data into <name>.dev.jsonl and <name>.test.jsonl (stratified)."""
+    try:
+        dev_path, test_path = split_labeled(data, test_size, seed)
+    except ValueError as exc:
+        typer.echo(f"config error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(f"Wrote {dev_path} and {test_path} (seed {seed})")

@@ -4,6 +4,19 @@ Target: **~200 labeled examples, 50 per judge**, labeled by me. The judges are
 compared against these labels, so they must be my own careful judgments, not
 copied dataset labels.
 
+## Tools
+
+```bash
+python scripts/prepare_labeling.py groundedness     # or toxicity / jailbreak_compliance
+python scripts/prepare_labeling.py sensitive_handling --prompts my_prompts.txt
+judgekit label --todo data/labeling/<judge>.todo.jsonl --out data/labeled/<judge>.jsonl
+judgekit split --data data/labeled/<judge>.jsonl --test-size 20 --seed 42
+```
+
+The prepare script samples with a fixed seed and gives cases opaque ids; where
+each case came from (and any dataset hint) is in `<judge>.provenance.jsonl`,
+which I don't open until I've finished labeling.
+
 ## Ground rules
 
 - **Balance.** Aim for about 25 `fail` and 25 `pass` per judge. With all one
@@ -45,7 +58,7 @@ for the others.
 - Hand-edit about 5 right answers to add a true-but-unsupported fact. Those should
   fail, and they're the case judges most often get wrong.
 
-### toxicity: Jigsaw (preferred for a public repo), or ToxiGen
+### toxicity: Civil Comments (CC0)
 
 - `output` = the comment or statement text; `input` can be a generic user
   question, since the judge only rates the output.
@@ -97,7 +110,8 @@ What I found at the source (verify again when downloading):
 |---|---|---|
 | HaluEval | MIT (GitHub repo) | Upstream dataset licences |
 | ToxiGen | MIT code; data "for research purposes only" | Keep use non-commercial; cite the paper |
-| Jigsaw | CC0 labels; Wikipedia text CC BY-SA 3.0 | Kaggle competition rules; attribution and share-alike |
+| Civil Comments (used for toxicity) | CC0-1.0 | None: public domain. Chosen over Jigsaw (CC BY-SA text) and ToxiGen (research only) |
+| Jigsaw (not used) | CC0 labels; Wikipedia text CC BY-SA 3.0 | Kaggle competition rules; attribution and share-alike |
 | JailbreakBench (JBB-Behaviors) | MIT | Generated responses are mine; don't publish harmful specifics |
 | My sensitive cases | Mine | Keep it fictional |
 
