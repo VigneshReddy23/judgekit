@@ -1,0 +1,62 @@
+# Runs a real eval suite against Bedrock and fails if any scorer is below its
+# threshold. Triggered manually, or by PRs that change rubrics or suites.
+# AWS access uses OIDC: GitHub issues a short-lived token that AWS exchanges for
+# temporary credentials. No AWS keys are stored in GitHub. Setup: docs/aws-oidc-setup.md
+name: Eval gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite file to run
+        default: suites/example.yaml
+  pull_request:
+    paths:
+      - "src/judgekit/prompts/**"
+      - "suites/**"
+
+permissions:
+  id-token: write  # lets the job request a GitHub OIDC token for AWS
+  contents: read
+
+concurrency:
+  group: eval-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval:
+    # PRs from forks get no OIDC token or secrets, so skip them instead of failing.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUITE: ${{ inputs.suite || 'suites/example.yaml' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install .
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-session-name: judgekit-eval-${{ github.run_id }}
+
+      - name: Run eval suite
+        run: judgekit run "$SUITE" --report report.html
+
+      - name: Upload HTML report
+        if: always()  # upload even when the gate fails; that is when you need it most
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-report
+          path: report.html
+          if-no-files-found: warn
