@@ -15,6 +15,7 @@ from judgekit.calibrate import calibrate as run_calibration
 from judgekit.calibrate import format_calibration, load_labeled
 from judgekit.judges import LLMJudge, available_judges
 from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, BedrockProvider
+from judgekit.report import collect_usage, write_report
 from judgekit.runner import RunResult, load_cases, load_suite, run_suite
 from judgekit.tracing import setup_tracing
 
@@ -67,6 +68,9 @@ def run(
             "default http://localhost:4318).",
         ),
     ] = False,
+    report: Annotated[
+        Path | None, typer.Option("--report", help="Write an HTML report to this path.")
+    ] = None,
 ) -> None:
     """Run an eval suite. Exits 1 if any scorer is below its threshold."""
     try:
@@ -76,10 +80,13 @@ def run(
         typer.echo(f"config error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
+    bedrock_providers: list[tuple[str, BedrockProvider]] = []  # for token/cost reporting
+
     judges: list[LLMJudge] = []
     if suite.judges:
         judge_provider = BedrockProvider(suite.judge_model_id, region=suite.region)
         judges = [LLMJudge(name, judge_provider) for name in suite.judges]
+        bedrock_providers.append(("judge", judge_provider))
 
     target = None
     if suite.target is not None:
@@ -89,6 +96,7 @@ def run(
             temperature=suite.target.temperature,
             max_tokens=suite.target.max_tokens,
         )
+        bedrock_providers.append(("target", target))
 
     provider = setup_tracing() if trace else None
     try:
@@ -97,6 +105,9 @@ def run(
         if provider is not None:
             provider.shutdown()  # flush buffered spans before the process exits
     typer.echo(format_summary(result))
+    if report is not None:
+        write_report(report, result, suite, collect_usage(bedrock_providers, suite.pricing))
+        typer.echo(f"Report written to {report}")
     raise typer.Exit(code=0 if result.passed else 1)
 
 

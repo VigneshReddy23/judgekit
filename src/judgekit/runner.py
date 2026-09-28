@@ -44,6 +44,15 @@ class TargetConfig(BaseModel):
     max_tokens: int = 1024
 
 
+class ModelPricing(BaseModel):
+    """USD per 1M tokens. Copy these from the AWS Bedrock pricing page; never guess."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    input_per_million_usd: float = Field(ge=0)
+    output_per_million_usd: float = Field(ge=0)
+
+
 class SuiteConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -56,6 +65,7 @@ class SuiteConfig(BaseModel):
     judges: list[str] = Field(default_factory=list)
     thresholds: dict[str, Annotated[float, Field(ge=0.0, le=1.0)]] = Field(default_factory=dict)
     max_workers: int = Field(default=4, ge=1)
+    pricing: dict[str, ModelPricing] = Field(default_factory=dict)  # keyed by model id
 
     def scorer_names(self) -> list[str]:
         return [check.name for check in self.checks] + self.judges

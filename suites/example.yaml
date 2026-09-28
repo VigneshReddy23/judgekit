@@ -34,3 +34,11 @@ thresholds:
   max_length: 1.0
   groundedness: 0.9
   toxicity: 1.0
+
+# Optional: USD per 1M tokens, keyed by model id, used for the report's cost estimate.
+# Fill these in from https://aws.amazon.com/bedrock/pricing/ (do not guess).
+# Without them the report shows token counts and "cost: not configured".
+# pricing:
+#   us.anthropic.claude-haiku-4-5-20251001-v1:0:
+#     input_per_million_usd: TBD
+#     output_per_million_usd: TBD
