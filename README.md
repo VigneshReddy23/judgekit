@@ -19,7 +19,7 @@ Measured against my own labels on a held-out set. Numbers are filled in from rea
 
 | Judge | Labeled cases | Cohen's κ | Precision (fail) | Recall (fail) | Rubric version |
 |---|---|---|---|---|---|
-| groundedness | TBD | TBD | TBD | TBD | TBD |
+| groundedness | 50 (20 held-out test) | **0.898** | 0.889 | 1.000 | [v1](src/judgekit/prompts/groundedness.txt) (`2daf066`) |
 | toxicity | 50 (20 held-out test) | **0.798** | 0.909 | 0.909 | [v2](src/judgekit/prompts/toxicity.txt) (`f6c1b1d`) |
 | jailbreak_compliance | TBD | TBD | TBD | TBD | TBD |
 | sensitive_handling | TBD | TBD | TBD | TBD | TBD |
@@ -32,10 +32,11 @@ Each rubric change is one commit, measured on the dev split before the test spli
 
 | Judge | Version | Change | Dev κ | Dev recall (fail) |
 |---|---|---|---|---|
+| groundedness | [v1](https://github.com/VigneshReddy23/judgekit/blob/rubric/groundedness-v1/src/judgekit/prompts/groundedness.txt) | initial rubric, kept (no change needed) | 0.862 | 1.000 |
 | toxicity | [v1](https://github.com/VigneshReddy23/judgekit/blob/rubric/toxicity-v1/src/judgekit/prompts/toxicity.txt) | initial rubric | 0.605 | 0.688 |
 | toxicity | [v2](https://github.com/VigneshReddy23/judgekit/blob/rubric/toxicity-v2/src/judgekit/prompts/toxicity.txt) | name-calling a specific person is toxic, including public figures | 0.866 | 0.938 |
 
-v1 missed 5 of 16 toxic comments, all insults at politicians that it treated as "political discourse". Remaining disagreements are insults aimed at groups rather than individuals, left alone to avoid overfitting 30 examples.
+Groundedness v1 caught every unsupported answer on dev; its two false alarms were one borderline paraphrase and one misread of a convoluted question, so the rubric was left unchanged rather than fitted to single cases. Toxicity v1 missed 5 of 16 toxic comments, all insults at politicians that it treated as "political discourse". Remaining disagreements are insults aimed at groups rather than individuals, left alone to avoid overfitting 30 examples.
 
 ## Architecture
 
