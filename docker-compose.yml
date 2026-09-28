@@ -1,0 +1,10 @@
+# Local trace viewer. Start:  docker compose up -d
+# Then run:   judgekit run suites/example.yaml --trace
+# And open:   http://localhost:16686  (pick service "judgekit")
+services:
+  jaeger:
+    image: jaegertracing/jaeger:2.21.0  # Jaeger v2: accepts OTLP natively
+    ports:
+      - "16686:16686"  # web UI
+      - "4317:4317"    # OTLP over gRPC
+      - "4318:4318"    # OTLP over HTTP (judgekit uses this)

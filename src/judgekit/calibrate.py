@@ -16,7 +16,7 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.metrics import cohen_kappa_score, confusion_matrix, precision_score, recall_score
 
-from judgekit.judges import LLMJudge
+from judgekit.judges import JUDGE_ERROR_PREFIXES, LLMJudge
 from judgekit.models import LabeledCase, Verdict
 from judgekit.runner import load_jsonl
 
@@ -101,9 +101,7 @@ def calibrate(judge: LLMJudge, cases: list[LabeledCase], max_workers: int = 4) -
         for case, result in zip(cases, results, strict=True)
         if (case.human_label == "pass") != result.passed
     ]
-    judge_errors = sum(
-        r.reason.startswith(("malformed judge output", "judge error")) for r in results
-    )
+    judge_errors = sum(r.reason.startswith(JUDGE_ERROR_PREFIXES) for r in results)
 
     return CalibrationResult(
         judge=judge.name,

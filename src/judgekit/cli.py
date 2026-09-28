@@ -16,6 +16,7 @@ from judgekit.calibrate import format_calibration, load_labeled
 from judgekit.judges import LLMJudge, available_judges
 from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, BedrockProvider
 from judgekit.runner import RunResult, load_cases, load_suite, run_suite
+from judgekit.tracing import setup_tracing
 
 app = typer.Typer(
     help="judgekit: evaluate LLM outputs with checks and calibrated judges.",
@@ -58,6 +59,14 @@ def run(
     suite_path: Annotated[
         Path, typer.Argument(help="Path to a suite YAML file.", exists=True, dir_okay=False)
     ],
+    trace: Annotated[
+        bool,
+        typer.Option(
+            "--trace",
+            help="Export OpenTelemetry spans via OTLP (OTEL_EXPORTER_OTLP_ENDPOINT, "
+            "default http://localhost:4318).",
+        ),
+    ] = False,
 ) -> None:
     """Run an eval suite. Exits 1 if any scorer is below its threshold."""
     try:
@@ -81,7 +90,12 @@ def run(
             max_tokens=suite.target.max_tokens,
         )
 
-    result = run_suite(suite, cases, judges, target)
+    provider = setup_tracing() if trace else None
+    try:
+        result = run_suite(suite, cases, judges, target)
+    finally:
+        if provider is not None:
+            provider.shutdown()  # flush buffered spans before the process exits
     typer.echo(format_summary(result))
     raise typer.Exit(code=0 if result.passed else 1)
 

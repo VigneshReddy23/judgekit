@@ -9,13 +9,18 @@ import re
 import time
 from importlib.resources import files
 
+from opentelemetry.trace import Status, StatusCode
 from pydantic import BaseModel, ValidationError
 
 from judgekit.models import EvalCase, JudgeResult, Verdict
 from judgekit.providers import Provider
+from judgekit.tracing import tracer
 
 # Matches ```json ... ``` or ``` ... ``` anywhere in the reply.
 FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
+
+# Reasons that mean "the judge itself broke", not "the output failed the rubric".
+JUDGE_ERROR_PREFIXES = ("malformed judge output", "judge error")
 
 
 class JudgeVerdict(BaseModel):
@@ -23,6 +28,11 @@ class JudgeVerdict(BaseModel):
 
     reason: str
     verdict: Verdict
+
+
+def model_id_of(provider: Provider) -> str:
+    """BedrockProvider has a model_id; fakes in tests don't, so fall back."""
+    return str(getattr(provider, "model_id", "unknown"))
 
 
 def available_judges() -> list[str]:
@@ -70,6 +80,20 @@ class LLMJudge:
         self.rubric = rubric if rubric is not None else load_rubric(name)
 
     def judge(self, case: EvalCase, output: str) -> JudgeResult:
+        """Judge one output, recorded as a `judge <name>` span."""
+        with tracer.start_as_current_span(f"judge {self.name}") as span:
+            span.set_attribute("judgekit.judge.name", self.name)
+            span.set_attribute("judgekit.case.id", case.id)
+            # gen_ai.* follows the OpenTelemetry GenAI semantic conventions.
+            span.set_attribute("gen_ai.request.model", model_id_of(self.provider))
+            result = self._judge(case, output)
+            span.set_attribute("judgekit.judge.verdict", "pass" if result.passed else "fail")
+            span.set_attribute("judgekit.judge.latency_ms", result.latency_ms)
+            if result.reason.startswith(JUDGE_ERROR_PREFIXES):
+                span.set_status(Status(StatusCode.ERROR, result.reason))
+            return result
+
+    def _judge(self, case: EvalCase, output: str) -> JudgeResult:
         start = time.perf_counter()
 
         # Step 1: call the model. Network/throttling/auth errors (after boto3's

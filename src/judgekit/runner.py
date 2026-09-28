@@ -13,12 +13,15 @@ from pathlib import Path
 from typing import Annotated, Any, Literal, TypeVar
 
 import yaml
+from opentelemetry import context as otel_context
+from opentelemetry.trace import Status, StatusCode
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from judgekit.checks import CHECKS, run_check
-from judgekit.judges import LLMJudge, available_judges
+from judgekit.judges import LLMJudge, available_judges, model_id_of
 from judgekit.models import EvalCase, JudgeResult
 from judgekit.providers import DEFAULT_JUDGE_MODEL_ID, Provider
+from judgekit.tracing import tracer
 
 # --- Suite config (mirrors suites/*.yaml) ------------------------------------
 
@@ -151,10 +154,29 @@ def get_output(case: EvalCase, target: Provider | None) -> str:
     if target is None:
         raise ValueError(f"case {case.id!r} has no output and the suite has no target")
     system = f"Answer using only this context:\n{case.context}" if case.context else ""
-    return target.complete(case.input, system=system)
+    with tracer.start_as_current_span("target.generate") as span:
+        span.set_attribute("gen_ai.request.model", model_id_of(target))
+        return target.complete(case.input, system=system)
 
 
 def evaluate_case(
+    case: EvalCase,
+    checks: list[CheckConfig],
+    judges: list[LLMJudge],
+    target: Provider | None,
+    parent: otel_context.Context | None = None,
+) -> CaseResult:
+    """Score one case, recorded as an `eval.case` span under `parent`."""
+    with tracer.start_as_current_span("eval.case", context=parent) as span:
+        span.set_attribute("judgekit.case.id", case.id)
+        result = _evaluate_case(case, checks, judges, target)
+        span.set_attribute("judgekit.case.passed", all(r.passed for r in result.results))
+        if result.results and result.results[0].reason.startswith("target error"):
+            span.set_status(Status(StatusCode.ERROR, result.results[0].reason))
+        return result
+
+
+def _evaluate_case(
     case: EvalCase, checks: list[CheckConfig], judges: list[LLMJudge], target: Provider | None
 ) -> CaseResult:
     try:
@@ -207,17 +229,30 @@ def run_suite(
     target: Provider | None = None,
 ) -> RunResult:
     """Evaluate all cases in parallel threads and summarise per scorer."""
-    start = time.perf_counter()
-    # Threads suit this workload: each case mostly waits on network I/O, and
-    # pool.map returns results in input order, so output is deterministic.
-    with ThreadPoolExecutor(max_workers=suite.max_workers) as pool:
-        case_results = list(
-            pool.map(lambda case: evaluate_case(case, suite.checks, judges, target), cases)
+    with tracer.start_as_current_span("eval.run") as span:
+        span.set_attribute("judgekit.suite.name", suite.name)
+        span.set_attribute("judgekit.case.count", len(cases))
+        # Worker threads don't inherit the current span automatically, so we
+        # capture it here and pass it in; otherwise each case would start its
+        # own disconnected trace.
+        parent = otel_context.get_current()
+
+        start = time.perf_counter()
+        # Threads suit this workload: each case mostly waits on network I/O, and
+        # pool.map returns results in input order, so output is deterministic.
+        with ThreadPoolExecutor(max_workers=suite.max_workers) as pool:
+            case_results = list(
+                pool.map(
+                    lambda case: evaluate_case(case, suite.checks, judges, target, parent), cases
+                )
+            )
+        total_latency_ms = (time.perf_counter() - start) * 1000
+
+        result = RunResult(
+            suite_name=suite.name,
+            cases=case_results,
+            summaries=summarize(case_results, suite.scorer_names(), suite.thresholds),
+            total_latency_ms=total_latency_ms,
         )
-    total_latency_ms = (time.perf_counter() - start) * 1000
-    return RunResult(
-        suite_name=suite.name,
-        cases=case_results,
-        summaries=summarize(case_results, suite.scorer_names(), suite.thresholds),
-        total_latency_ms=total_latency_ms,
-    )
+        span.set_attribute("judgekit.run.passed", result.passed)
+        return result
