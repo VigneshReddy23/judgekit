@@ -19,3 +19,7 @@ report*.html
 
 # Secrets / local config
 .env
+
+# Jailbreak data can contain harmful text: kept local until reviewed/redacted
+data/labeling/jailbreak_compliance.*
+data/labeled/jailbreak_compliance*.jsonl

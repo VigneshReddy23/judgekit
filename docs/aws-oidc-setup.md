@@ -67,8 +67,8 @@ Save as `trust-policy.json`:
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
           "token.actions.githubusercontent.com:sub": [
-            "repo:VigneshReddy23/judgekit:pull_request",
-            "repo:VigneshReddy23/judgekit:ref:refs/heads/main"
+            "repo:VigneshReddy23@189483487/judgekit@1393612415:pull_request",
+            "repo:VigneshReddy23@189483487/judgekit@1393612415:ref:refs/heads/main"
           ]
         }
       }
@@ -78,7 +78,12 @@ Save as `trust-policy.json`:
 ```
 
 - `aud` makes sure the token was minted for AWS.
-- `sub` names the exact repo and trigger. Without it, **any** GitHub repo could
+- `sub` names the exact repo and trigger. New GitHub repos use an **immutable
+  subject**: `repo:<owner>@<owner-id>/<repo>@<repo-id>:...`. The numeric IDs mean a
+  deleted-and-recreated repo with the same name can't reuse your role. Find your
+  prefix with `gh api repos/<owner>/<repo>/actions/oidc/customization/sub`
+  (the `sub_claim_prefix` field); older repos use `repo:<owner>/<repo>:...`.
+- Without the `sub` check, **any** GitHub repo could
   assume your role. This is the most common OIDC misconfiguration.
 - `pull_request` covers the PR trigger; `ref:refs/heads/main` covers manual
   runs started from `main`.
@@ -187,7 +192,7 @@ suite for day-to-day use.
 
 | Error | Likely cause |
 |---|---|
-| `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The `sub` in the trust policy doesn't match: wrong owner or repo name, or the run came from a branch other than `main` |
+| `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The `sub` in the trust policy doesn't match: check the immutable-subject prefix (see Step 2), the owner/repo name, or the run came from a branch other than `main` |
 | `Could not load credentials from any providers` | Missing `permissions: id-token: write`, or the PR came from a fork |
 | `AccessDeniedException ... bedrock:InvokeModel` | The model or profile ARN in the policy doesn't match the `judge_model_id` in the suite |
 | `ValidationException ... model identifier is invalid` | Wrong model ID, or model access not enabled in this region |
