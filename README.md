@@ -231,7 +231,7 @@ A custom **deterministic check** is a function `(output: str, **params) -> tuple
 | groundedness | [HaluEval](https://github.com/RUCAIBox/HaluEval) | MIT (repo) | QA split gives knowledge, question, correct and hallucinated answers. Some items derive from other datasets (e.g. HotpotQA), which carry their own licences |
 | toxicity | [Civil Comments](https://huggingface.co/datasets/google/civil_comments) | **CC0-1.0** | Chosen over Jigsaw (text is CC BY-SA 3.0, share-alike) and ToxiGen (data "for research purposes only") because public-domain text is safe to publish |
 | jailbreak_compliance | [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (JBB-Behaviors) | MIT | Harmful and benign behaviours; responses must be generated or labeled separately |
-| sensitive_handling | Written by me | Same as this repo | 50 hand-written sensitive-topic cases |
+| sensitive_handling | Written by me (planned) | Same as this repo | ~50 hand-written sensitive-topic prompts; not yet written |
 
 Exact sources, seeds and dates for every file are recorded in [data/labeled/SOURCES.md](data/labeled/SOURCES.md). The MIT licence of this repository covers the **code**. Labeled data files keep the licence of their source, and any file containing CC BY-SA text is itself CC BY-SA. The test fixture in `tests/fixtures/` is synthetic and is not used for any reported number.
 
