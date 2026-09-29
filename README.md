@@ -1,6 +1,7 @@
 # judgekit
 
 [![CI](https://github.com/VigneshReddy23/judgekit/actions/workflows/ci.yml/badge.svg)](https://github.com/VigneshReddy23/judgekit/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/judgekit-eval)](https://pypi.org/project/judgekit-eval/)
 
 **An LLM evaluation harness that scores model outputs with deterministic checks and human-calibrated LLM judges, then blocks the merge when quality drops.**
 
@@ -19,16 +20,16 @@ Measured against my own labels on a held-out set. Numbers are filled in from rea
 
 | Judge | Labeled cases | Cohen's κ | Precision (fail) | Recall (fail) | Rubric version |
 |---|---|---|---|---|---|
-| groundedness | 50 (20 held-out test) | **0.898** | 0.889 | 1.000 | [v1](src/judgekit/prompts/groundedness.txt) (`2daf066`) |
-| toxicity | 50 (20 held-out test) | **0.798** | 0.909 | 0.909 | [v2](src/judgekit/prompts/toxicity.txt) (`f6c1b1d`) |
-| jailbreak_compliance | 50 (only 3 fail) | n/a* | n/a* | n/a* | [v1](src/judgekit/prompts/jailbreak_compliance.txt) (`2daf066`) |
-| sensitive_handling | pending† | – | – | – | [v1](src/judgekit/prompts/sensitive_handling.txt) |
+| groundedness | 50 (20 held-out test) | **0.898** | 0.889 | 1.000 | [v1](https://github.com/VigneshReddy23/judgekit/blob/main/src/judgekit/prompts/groundedness.txt) (`2daf066`) |
+| toxicity | 50 (20 held-out test) | **0.798** | 0.909 | 0.909 | [v2](https://github.com/VigneshReddy23/judgekit/blob/main/src/judgekit/prompts/toxicity.txt) (`f6c1b1d`) |
+| jailbreak_compliance | 50 (only 3 fail) | n/a* | n/a* | n/a* | [v1](https://github.com/VigneshReddy23/judgekit/blob/main/src/judgekit/prompts/jailbreak_compliance.txt) (`2daf066`) |
+| sensitive_handling | pending† | – | – | – | [v1](https://github.com/VigneshReddy23/judgekit/blob/main/src/judgekit/prompts/sensitive_handling.txt) |
 
 \*Not calibrated: Claude Haiku 4.5 (the target) refused 47 of 50 JailbreakBench-style requests, so there were only 3 real compliance cases, too few for a stable κ or a held-out split. For transparency, on all 50 cases the judge agreed with me on 47 (94%) but caught only 1 of the 3 compliance cases (κ 0.37, not reliable at this sample size). Both misses were lower-severity categories (individualized medical advice; emissions-test cheating inside a role-play) that the v1 rubric's definition of "harmful" doesn't name, so the next step is broadening that definition and adding more compliance examples. The jailbreak data is kept out of the repo because it may contain harmful text.
 
 †Pending: this judge is calibrated on sensitive-topic questions I write myself (not sampled from a dataset), which aren't finished yet. Steps: `scripts/prepare_labeling.py sensitive_handling --prompts my_prompts.txt` → `judgekit label` → `judgekit split` → `judgekit calibrate`.
 
-Numbers are on the **held-out test split** (never used while tuning the rubric). Judge model for these numbers: Claude Haiku 4.5 on Bedrock, temperature 0. Calibration is per judge *model*: switching models means re-running calibration. Reproduce any row with `judgekit calibrate --judge <name> --data data/labeled/<name>.test.jsonl` (held-out split; see [docs/labeling-plan.md](docs/labeling-plan.md)).
+Numbers are on the **held-out test split** (never used while tuning the rubric). Judge model for these numbers: Claude Haiku 4.5 on Bedrock, temperature 0. Calibration is per judge *model*: switching models means re-running calibration. Reproduce any row with `judgekit calibrate --judge <name> --data data/labeled/<name>.test.jsonl` (held-out split; see [docs/labeling-plan.md](https://github.com/VigneshReddy23/judgekit/blob/main/docs/labeling-plan.md)).
 
 ### Rubric history (dev split, 30 cases)
 
@@ -64,7 +65,16 @@ flowchart LR
 
 ## Quickstart
 
-Requires Python 3.11+. This runs the checks-only suite: no AWS account, no network, no cost.
+Requires Python 3.11+.
+
+```bash
+pip install judgekit-eval        # installs the `judgekit` command
+judgekit --help
+```
+
+The package is published as **`judgekit-eval`** because the name `judgekit` on PyPI belongs to an unrelated project; the command and the Python import are still `judgekit` (don't install both packages in the same environment).
+
+To try the bundled examples, clone the repo. This runs the checks-only suite: no AWS account, no network, no cost.
 
 ```bash
 git clone https://github.com/VigneshReddy23/judgekit && cd judgekit
@@ -174,7 +184,7 @@ Span tree: `eval.run` → `eval.case` (one per case, run in parallel) → `targe
 ### CI
 
 - **`ci.yml`**: ruff, mypy (strict) and pytest with coverage on every push and PR. No secrets needed; tests use a fake provider.
-- **`eval-gate.yml`**: runs a real suite for PRs that touch `src/judgekit/prompts/**` or `suites/**`, or on manual dispatch, and uploads `report.html` as an artifact even when the gate fails. For Bedrock it authenticates with **OIDC** (no stored AWS keys; setup in [docs/aws-oidc-setup.md](docs/aws-oidc-setup.md)); for API-key providers, add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` as a repository secret.
+- **`eval-gate.yml`**: runs a real suite for PRs that touch `src/judgekit/prompts/**` or `suites/**`, or on manual dispatch, and uploads `report.html` as an artifact even when the gate fails. For Bedrock it authenticates with **OIDC** (no stored AWS keys; setup in [docs/aws-oidc-setup.md](https://github.com/VigneshReddy23/judgekit/blob/main/docs/aws-oidc-setup.md)); for API-key providers, add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` as a repository secret.
 
 ## Writing a custom judge
 
@@ -224,7 +234,7 @@ A custom **deterministic check** is a function `(output: str, **params) -> tuple
 
 ## Dataset sources and licences
 
-`data/labeled/` holds my own human labels; how they're built is in [docs/labeling-plan.md](docs/labeling-plan.md). Candidate sources, with licences checked at the source:
+`data/labeled/` holds my own human labels; how they're built is in [docs/labeling-plan.md](https://github.com/VigneshReddy23/judgekit/blob/main/docs/labeling-plan.md). Candidate sources, with licences checked at the source:
 
 | Judge | Source | Licence | Notes |
 |---|---|---|---|
@@ -233,7 +243,7 @@ A custom **deterministic check** is a function `(output: str, **params) -> tuple
 | jailbreak_compliance | [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (JBB-Behaviors) | MIT | Harmful and benign behaviours; responses must be generated or labeled separately |
 | sensitive_handling | Written by me (planned) | Same as this repo | ~50 hand-written sensitive-topic prompts; not yet written |
 
-Exact sources, seeds and dates for every file are recorded in [data/labeled/SOURCES.md](data/labeled/SOURCES.md). The MIT licence of this repository covers the **code**. Labeled data files keep the licence of their source, and any file containing CC BY-SA text is itself CC BY-SA. The test fixture in `tests/fixtures/` is synthetic and is not used for any reported number.
+Exact sources, seeds and dates for every file are recorded in [data/labeled/SOURCES.md](https://github.com/VigneshReddy23/judgekit/blob/main/data/labeled/SOURCES.md). The MIT licence of this repository covers the **code**. Labeled data files keep the licence of their source, and any file containing CC BY-SA text is itself CC BY-SA. The test fixture in `tests/fixtures/` is synthetic and is not used for any reported number.
 
 ## Project layout
 
@@ -261,4 +271,4 @@ docs/            AWS OIDC + least-privilege IAM setup
 
 ## Licence
 
-Code: [MIT](LICENSE). Data: see [Dataset sources and licences](#dataset-sources-and-licences).
+Code: [MIT](https://github.com/VigneshReddy23/judgekit/blob/main/LICENSE). Data: see [Dataset sources and licences](#dataset-sources-and-licences).

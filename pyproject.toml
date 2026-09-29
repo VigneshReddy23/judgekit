@@ -3,12 +3,25 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "judgekit"
-version = "0.1.0"
+name = "judgekit-eval"  # "judgekit" is taken on PyPI; the import and CLI stay `judgekit`
+version = "0.1.1"
 description = "An LLM evaluation harness: deterministic checks, calibrated LLM-as-judge scorers, and a CI gate."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
+authors = [{ name = "Vignesh Reddy Kethireddy" }]
+keywords = ["llm", "evaluation", "llm-as-judge", "calibration", "cohens-kappa", "ci", "bedrock", "anthropic"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic>=2.6",
     "typer>=0.12",
@@ -20,6 +33,12 @@ dependencies = [
     "opentelemetry-sdk>=1.24",
     "opentelemetry-exporter-otlp>=1.24",
 ]
+
+[project.urls]
+Homepage = "https://github.com/VigneshReddy23/judgekit"
+Repository = "https://github.com/VigneshReddy23/judgekit"
+Issues = "https://github.com/VigneshReddy23/judgekit/issues"
+Releases = "https://github.com/VigneshReddy23/judgekit/releases"
 
 [project.scripts]
 judgekit = "judgekit.cli:app"
@@ -35,6 +54,19 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/judgekit"]
+
+# The source distribution ships code, tests and the synthetic demo data only.
+# Human-labeled and to-be-labeled data (data/labeled, data/labeling) stay in the repo.
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/judgekit",
+    "tests",
+    "suites",
+    "data/cases",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
 
 [tool.ruff]
 line-length = 100
