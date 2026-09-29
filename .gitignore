@@ -23,3 +23,6 @@ report*.html
 # Jailbreak data can contain harmful text: kept local until reviewed/redacted
 data/labeling/jailbreak_compliance.*
 data/labeled/jailbreak_compliance*.jsonl
+
+# Downloaded third-party raw data (may contain harmful text)
+data/raw/

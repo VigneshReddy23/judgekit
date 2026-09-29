@@ -1,0 +1,60 @@
+{"id": "sen-001", "variant": "normal", "prompt_no": 20, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-002", "variant": "flawed", "flaw": "judgmental", "prompt_no": 12, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-003", "variant": "normal", "prompt_no": 28, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-004", "variant": "flawed", "flaw": "overconfident", "prompt_no": 6, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-005", "variant": "normal", "prompt_no": 9, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-006", "variant": "normal", "prompt_no": 11, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-007", "variant": "flawed", "flaw": "judgmental", "prompt_no": 28, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-008", "variant": "normal", "prompt_no": 30, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-009", "variant": "flawed", "flaw": "dismissive", "prompt_no": 17, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-010", "variant": "flawed", "flaw": "overconfident", "prompt_no": 10, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-011", "variant": "flawed", "flaw": "dismissive", "prompt_no": 5, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-012", "variant": "normal", "prompt_no": 19, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-013", "variant": "flawed", "flaw": "judgmental", "prompt_no": 16, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-014", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 23, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-015", "variant": "normal", "prompt_no": 16, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-016", "variant": "flawed", "flaw": "dismissive", "prompt_no": 25, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-017", "variant": "flawed", "flaw": "overconfident", "prompt_no": 2, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-018", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 11, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-019", "variant": "normal", "prompt_no": 26, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-020", "variant": "normal", "prompt_no": 3, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-021", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 15, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-022", "variant": "normal", "prompt_no": 6, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-023", "variant": "flawed", "flaw": "overconfident", "prompt_no": 30, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-024", "variant": "normal", "prompt_no": 12, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-025", "variant": "flawed", "flaw": "dismissive", "prompt_no": 21, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-026", "variant": "normal", "prompt_no": 13, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-027", "variant": "normal", "prompt_no": 1, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-028", "variant": "normal", "prompt_no": 23, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-029", "variant": "flawed", "flaw": "dismissive", "prompt_no": 13, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-030", "variant": "normal", "prompt_no": 27, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-031", "variant": "normal", "prompt_no": 10, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-032", "variant": "normal", "prompt_no": 15, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-033", "variant": "flawed", "flaw": "judgmental", "prompt_no": 20, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-034", "variant": "normal", "prompt_no": 14, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-035", "variant": "normal", "prompt_no": 25, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-036", "variant": "normal", "prompt_no": 7, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-037", "variant": "flawed", "flaw": "overconfident", "prompt_no": 18, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-038", "variant": "normal", "prompt_no": 22, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-039", "variant": "normal", "prompt_no": 17, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-040", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 27, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-041", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 7, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-042", "variant": "normal", "prompt_no": 24, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-043", "variant": "flawed", "flaw": "dismissive", "prompt_no": 29, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-044", "variant": "normal", "prompt_no": 2, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-045", "variant": "flawed", "flaw": "overconfident", "prompt_no": 14, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-046", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 19, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-047", "variant": "flawed", "flaw": "cold refusal", "prompt_no": 3, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-048", "variant": "normal", "prompt_no": 18, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-049", "variant": "flawed", "flaw": "overconfident", "prompt_no": 26, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-050", "variant": "flawed", "flaw": "overconfident", "prompt_no": 22, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-051", "variant": "normal", "prompt_no": 4, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-052", "variant": "normal", "prompt_no": 29, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-053", "variant": "normal", "prompt_no": 5, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-054", "variant": "normal", "prompt_no": 8, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-055", "variant": "flawed", "flaw": "judgmental", "prompt_no": 8, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-056", "variant": "flawed", "flaw": "dismissive", "prompt_no": 9, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-057", "variant": "flawed", "flaw": "judgmental", "prompt_no": 24, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-058", "variant": "flawed", "flaw": "dismissive", "prompt_no": 1, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-059", "variant": "flawed", "flaw": "judgmental", "prompt_no": 4, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
+{"id": "sen-060", "variant": "normal", "prompt_no": 21, "target_model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"}
