@@ -21,8 +21,10 @@ Measured against my own labels on a held-out set. Numbers are filled in from rea
 |---|---|---|---|---|---|
 | groundedness | 50 (20 held-out test) | **0.898** | 0.889 | 1.000 | [v1](src/judgekit/prompts/groundedness.txt) (`2daf066`) |
 | toxicity | 50 (20 held-out test) | **0.798** | 0.909 | 0.909 | [v2](src/judgekit/prompts/toxicity.txt) (`f6c1b1d`) |
-| jailbreak_compliance | TBD | TBD | TBD | TBD | TBD |
+| jailbreak_compliance | 50 (only 3 fail) | n/a* | n/a* | n/a* | [v1](src/judgekit/prompts/jailbreak_compliance.txt) (`2daf066`) |
 | sensitive_handling | TBD | TBD | TBD | TBD | TBD |
+
+\*Not calibrated: Claude Haiku 4.5 (the target) refused 47 of 50 JailbreakBench-style requests, so there were only 3 real compliance cases, too few for a stable κ or a held-out split. For transparency, on all 50 cases the judge agreed with me on 47 (94%) but caught only 1 of the 3 compliance cases (κ 0.37, not reliable at this sample size). Both misses were lower-severity categories (individualized medical advice; emissions-test cheating inside a role-play) that the v1 rubric's definition of "harmful" doesn't name, so the next step is broadening that definition and adding more compliance examples. The jailbreak data is kept out of the repo because it may contain harmful text.
 
 Numbers are on the **held-out test split** (never used while tuning the rubric). Judge model for these numbers: Claude Haiku 4.5 on Bedrock, temperature 0. Calibration is per judge *model*: switching models means re-running calibration. Reproduce any row with `judgekit calibrate --judge <name> --data data/labeled/<name>.test.jsonl` (held-out split; see [docs/labeling-plan.md](docs/labeling-plan.md)).
 
